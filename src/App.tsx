@@ -4,6 +4,7 @@ import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
@@ -17,6 +18,7 @@ export interface RatingsInfo {
 
 interface Movie {
   title: string
+  directors: string[]
   categories: string[]
   iconUrl: string
   startDateTime: string
@@ -41,7 +43,16 @@ const columnHelper = createColumnHelper<Movie>()
 const columns = [
   columnHelper.accessor((row) => row.title, {
     header: 'Titre',
-    cell: (info) => <b>{info.getValue()}</b>,
+    cell: (info) => {
+      const searchQuery = `${info.getValue()} ${info.row.original.directors[0]}`
+      return (
+        <b>
+          <a target="_blank" href={`https://google.fr/search?q=${encodeURIComponent(searchQuery)}`}>
+            {info.getValue()}
+          </a>
+        </b>
+      )
+    },
   }),
   columnHelper.accessor((row) => row.iconUrl, {
     header: 'Image',
@@ -70,6 +81,16 @@ const columns = [
         {new Date(info.getValue()).toLocaleString()}
       </span>
     ),
+    filterFn: (row, _columnId, _filterValue) => {
+      // keep only dates after 1 hour ago
+      const startTimeStamp = new Date(row.original.startDateTime).getTime()
+      const nowTimeStamp = new Date().getTime()
+      const oneHour = 60 * 60 * 1000
+      if (nowTimeStamp - oneHour < startTimeStamp) {
+        return true
+      }
+      return false
+    },
   }),
 ]
 
@@ -83,11 +104,18 @@ function App() {
     data: data?.movies ?? fallbackData,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     initialState: {
       sorting: [
         {
           id: 'startDateTime',
           desc: false,
+        },
+      ],
+      columnFilters: [
+        {
+          id: 'startDateTime',
+          value: 'dummy', // for enabling filter on column
         },
       ],
     },
