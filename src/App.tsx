@@ -1,6 +1,12 @@
 import './App.css'
 import { useQuery } from '@tanstack/react-query'
-import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
 
 export interface RatingsInfo {
   /** out of 100 */
@@ -53,12 +59,17 @@ const columns = [
     cell: (info) => (info.getValue() ? `${info.getValue()}/10` : '-'),
   }),
   columnHelper.accessor((row) => row.startDateTime, {
-    header: 'Début',
-    cell: (info) => new Date(info.getValue()).toLocaleString(),
-  }),
-  columnHelper.accessor((row) => row.stopDateTime, {
-    header: 'Fin',
-    cell: (info) => new Date(info.getValue()).toLocaleString(),
+    id: 'startDateTime',
+    header: 'Heure',
+    cell: (info) => (
+      <span
+        title={`${new Date(info.getValue()).toLocaleTimeString()} - ${new Date(
+          info.row.original.stopDateTime
+        ).toLocaleTimeString()}`}
+      >
+        {new Date(info.getValue()).toLocaleString()}
+      </span>
+    ),
   }),
 ]
 
@@ -71,6 +82,15 @@ function App() {
     columns,
     data: data?.movies ?? fallbackData,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    initialState: {
+      sorting: [
+        {
+          id: 'startDateTime',
+          desc: false,
+        },
+      ],
+    },
   })
 
   return (
@@ -89,7 +109,7 @@ function App() {
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <th key={header.id}>
+                    <th key={header.id} className="th">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
@@ -100,7 +120,9 @@ function App() {
               {table.getRowModel().rows.map((row) => (
                 <tr key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                    <td key={cell.id} className="td">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
                   ))}
                 </tr>
               ))}
